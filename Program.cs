@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace MyApp // Note: actual namespace depends on the project name.
 {
@@ -13,7 +15,7 @@ namespace MyApp // Note: actual namespace depends on the project name.
             var initialTiles = InitializeTiles();
             //太郎君は、 i 日目の朝に、左から axi 番目で上から ayi 番目のタイルを左上、 左から bxi 番目で上から byi 番目のタイルを右下にした長方形領域に存在しているタイルがすべて白いかどうかを確認する。 
             //もしすべてのタイルが白かった場合、それらのタイルをすべて黒く塗りつぶす。それ以外のときは何もしない。
-            var numberOfblackedTiles = PaintItBlack(initialTiles);
+            var numberOfblackedTiles = PaintItBlackIfNecessary(initialTiles);
             //N 日間のそれぞれの日において、その日の作業が終了した時点で黒く塗りつぶされたタイルが何枚あるかを出力せよ。
             ShowOutput(numberOfblackedTiles);
         }
@@ -25,19 +27,21 @@ namespace MyApp // Note: actual namespace depends on the project name.
                 Console.WriteLine(numberOfBlackedTile);
             }
 
-            Console.ReadKey();
+            //Console.ReadKey();
         }
 
-        static IEnumerable<ulong> PaintItBlack(IEnumerable<RectangleCoordinate> rectangleCoordinates)
+        static IEnumerable<ulong> PaintItBlackIfNecessary(IEnumerable<RectangleCoordinate> rectangleCoordinates)
         {
-            var numberOfBlackTiles = new List<ulong>();
-            var numberOfProcessedRectangleCoordinates = new List<RectangleCoordinate>();
+            var coordinateLength = rectangleCoordinates.Count();
+            var numberOfBlackTiles = new List<ulong>(coordinateLength);
+            var numberOfProcessedRectangleCoordinates = new List<RectangleCoordinate>(coordinateLength);
             ulong numberOfBlackTile = 0;
             foreach(var rectangleCoordinate in rectangleCoordinates)
             {
                 numberOfBlackTile += FindBlackTiles(numberOfProcessedRectangleCoordinates, rectangleCoordinate);
                 numberOfBlackTiles.Add(numberOfBlackTile);
                 numberOfProcessedRectangleCoordinates.Add(rectangleCoordinate);
+                numberOfProcessedRectangleCoordinates.OrderByDescending(x => x.InBlack);
             }
 
             return numberOfBlackTiles;
@@ -49,41 +53,45 @@ namespace MyApp // Note: actual namespace depends on the project name.
             {
                 return 0L;
             }
-            
+
+            ulong arraySize = PaintItBlack(rectangleCoordinate);
+
+            return arraySize;
+        }
+
+        private static ulong PaintItBlack(RectangleCoordinate rectangleCoordinate)
+        {
             rectangleCoordinate.InBlack = true;
 
             uint width = rectangleCoordinate.Vertex2.Item1 - rectangleCoordinate.Vertex1.Item1 + 1;
             uint height = rectangleCoordinate.Vertex2.Item2 - rectangleCoordinate.Vertex1.Item2 + 1;
-            ulong arraySize = width*height;
-
+            ulong arraySize = width * height;
             return arraySize;
         }
 
         static bool IsTargetInBlack(IEnumerable<RectangleCoordinate> numberOfProcessedRectangleCoordinates, RectangleCoordinate rectangleCoordinate)
         {
-            foreach(var numberOfProcessedRectangleCoordinate in numberOfProcessedRectangleCoordinates)
+            bool result = false;
+            // Parallel.ForEach(numberOfProcessedRectangleCoordinates, (numberOfProcessedRectangleCoordinate, state) => 
+            // {
+            //      if (IsTargetInBlack(numberOfProcessedRectangleCoordinate, rectangleCoordinate))
+            //      {
+            //         result = true;
+            //         state.Stop();
+            //      }                
+            // });
+            foreach(var processedRectangleCoordinate in numberOfProcessedRectangleCoordinates)
             {
-                if (IsTargetInBlack(numberOfProcessedRectangleCoordinate, rectangleCoordinate))
+                if (processedRectangleCoordinate.InBlack == true)
                 {
-                    return true;
+                    if (IsOverlapped(processedRectangleCoordinate, rectangleCoordinate))
+                    {
+                        return true;
+                    }
                 }
             }
 
-            return false;
-        }
-
-        static bool IsTargetInBlack(RectangleCoordinate processedRectangleCoordinate, RectangleCoordinate rectangleCoordinate)
-        {
-            if (processedRectangleCoordinate.InBlack == true)
-            {
-                if (IsOverlapped(processedRectangleCoordinate, rectangleCoordinate))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-
+            return result;
         }
 
         static bool IsOverlapped(RectangleCoordinate processedRectangleCoordinate, RectangleCoordinate rectangleCoordinate)
@@ -94,29 +102,10 @@ namespace MyApp // Note: actual namespace depends on the project name.
             var processedLeftTop = processedRectangleCoordinate.Vertex1;
             var processedRightBottom = processedRectangleCoordinate.Vertex2;
 
-            bool IsLeftLessRight = false;
-            if (leftTop.Item2 <= processedRightBottom.Item2)
-            {
-                IsLeftLessRight = true;
-            }
-
-            bool IsRightGreaterLeft = false;
-            if (rightBottom.Item2 >= processedLeftTop.Item2)
-            {
-                IsRightGreaterLeft = true;
-            }
-
-            bool IsTopLessBottom = false;
-            if (leftTop.Item1 <= processedRightBottom.Item1)
-            {
-                IsTopLessBottom = true;
-            }
-
-            bool IsBottomGreaterTop = false;
-            if (rightBottom.Item1 >= processedLeftTop.Item1)
-            {
-                IsBottomGreaterTop = true;
-            }
+            bool IsLeftLessRight = (leftTop.Item2 <= processedRightBottom.Item2);
+            bool IsRightGreaterLeft = (rightBottom.Item2 >= processedLeftTop.Item2);
+            bool IsTopLessBottom = (leftTop.Item1 <= processedRightBottom.Item1);
+            bool IsBottomGreaterTop = (rightBottom.Item1 >= processedLeftTop.Item1);
 
             if ((IsLeftLessRight) && (IsRightGreaterLeft) && (IsTopLessBottom) && (IsBottomGreaterTop))
             {
@@ -124,16 +113,6 @@ namespace MyApp // Note: actual namespace depends on the project name.
             }
 
             return false;
-        }
-        static void PaintTargeçtInBlack(Tiles originalTiles, RectangleCoordinate rectangleCoordinate)
-        {
-           for(uint xIndex = rectangleCoordinate.Vertex1.Item1; xIndex <= rectangleCoordinate.Vertex2.Item1; xIndex++)
-            {
-                for(uint yIndex =rectangleCoordinate.Vertex1.Item2; yIndex <= rectangleCoordinate.Vertex2.Item2; yIndex++)
-                {
-                    originalTiles.SetTileColor(xIndex-1, yIndex-1, true);
-                }
-            }
         }
 
 
@@ -154,19 +133,6 @@ namespace MyApp // Note: actual namespace depends on the project name.
             return parsedInput.rectanbleCoordinates;
         }
 
-        static Tiles CreateTiles(uint H, uint W)
-        {
-            var tiles = new Tiles(H, W);
-            for(uint xIndex = 0; xIndex < H; xIndex++)
-            {
-                for(uint yIndex =0; yIndex < W; yIndex++)
-                {
-                    tiles.SetTileColor(xIndex, yIndex, false);
-                }
-            }
-
-            return tiles;
-        }
         static (uint W, uint H, IEnumerable<RectangleCoordinate> rectanbleCoordinates) ParseInputData(IEnumerable<string> input)
         {
             var rectangleSize = input.ElementAt(0).Split(" ");
@@ -193,10 +159,11 @@ namespace MyApp // Note: actual namespace depends on the project name.
             {
                 int days = 0;
                 List<string> input = new List<string>();
+
                 while(true)
                 {
                     var line = Console.ReadLine();
-                    if ((line == null) || (string.IsNullOrEmpty(line)))
+                    if ((line == null) || string.IsNullOrEmpty(line) )
                     {
                         break;
                     }
@@ -235,33 +202,6 @@ namespace MyApp // Note: actual namespace depends on the project name.
         internal (uint, uint) Vertex2 {get; }
 
         internal bool InBlack {get; set;}
-    }
-
-    internal class Tiles
-    {
-        internal bool[] RowTiles {get;}
-        internal uint Width {get;}
-        internal uint Height {get;}
- 
-        internal bool GetTileColor(uint xi, uint yi)
-        {
-            ulong index = xi * this.Width + yi;
-            return RowTiles[index];
-        }
-
-        internal void SetTileColor(uint xi, uint yi, bool value)
-        {
-            ulong index = xi * this.Width + yi;
-            RowTiles[index] = value;
-        }
-
-        internal Tiles(uint height, uint width)
-        {
-            Width = width;
-            Height = height;
-            ulong arraySize = width * height;
-            RowTiles = new bool[arraySize];
-        }
     }
 
 
