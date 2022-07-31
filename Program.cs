@@ -59,16 +59,38 @@ namespace MyApp // Note: actual namespace depends on the project name.
             var processedRectangleCoordinates = new List<RectangleCoordinate>(days);
             ulong inTotalBlackTiles = 0;
 
-            var spanRects = new Span<RectangleCoordinate>(rectangleCoordinates.ToArray());
-            var inBlackRect = new RectangleCoordinate(spanRects[0]);
-            foreach(var spanRect in spanRects)
+//            var spanRects = new Span<RectangleCoordinate>(rectangleCoordinates.ToArray());
+            foreach(var rectangleCoordinate in rectangleCoordinates)
             {
-                //var processedSpanRect = new Span<RectangleCoordinate>(processedRectangleCoordinates.ToArray());
-                if (!FindBlackTiles(inBlackRect, processedRectangleCoordinates, spanRect))
+                // if (!FindBlackTiles(processedRectangleCoordinates, spanRect))
+                // {
+                //     inTotalBlackTiles += PaintItBlack(spanRect);
+                //     processedRectangleCoordinates.Add(spanRect);
+                // }
+
+                bool  overlapped = false;
+                foreach(var processedRectangleCoordinate in processedRectangleCoordinates)
                 {
-                    inTotalBlackTiles += PaintItBlack(spanRect);
-                    processedRectangleCoordinates.Add(spanRect);
-                    inBlackRect = UpdateInBlackRect(inBlackRect, spanRect);
+
+                    var leftTop = rectangleCoordinate.Vertex1;
+                    var rightBottom = rectangleCoordinate.Vertex2;
+
+                    var processedLeftTop = processedRectangleCoordinate.Vertex1;
+                    var processedRightBottom = processedRectangleCoordinate.Vertex2;
+
+                    bool IsLeftLessRight = (leftTop.x <= processedRightBottom.x);
+                    bool IsRightGreaterLeft = (rightBottom.x >= processedLeftTop.x);
+                    bool IsTopLessBottom = (leftTop.y <= processedRightBottom.y);
+                    bool IsBottomGreaterTop = (rightBottom.y >= processedLeftTop.y);
+
+                    overlapped = IsLeftLessRight && IsRightGreaterLeft && IsTopLessBottom && IsBottomGreaterTop;
+                    if (overlapped) break;
+                }
+
+                if (!overlapped)
+                {
+                    inTotalBlackTiles += PaintItBlack(rectangleCoordinate);
+                    processedRectangleCoordinates.Add(rectangleCoordinate);
                 }
 
                 blackTiles.Add(inTotalBlackTiles);
@@ -77,23 +99,28 @@ namespace MyApp // Note: actual namespace depends on the project name.
             return blackTiles;
         }
 
-        static RectangleCoordinate UpdateInBlackRect(RectangleCoordinate inBlackRect, RectangleCoordinate spanRect)
-        {
-            uint newX1 = Math.Min(inBlackRect.Vertex1.x, spanRect.Vertex1.x);
-            uint newY1 = Math.Min(inBlackRect.Vertex1.y, spanRect.Vertex1.y);
-            uint newX2 = Math.Max(inBlackRect.Vertex2.x, spanRect.Vertex2.x);
-            uint newY2 = Math.Max(inBlackRect.Vertex2.y, spanRect.Vertex2.y);
+        // static RectangleCoordinate UpdateInBlackRect(RectangleCoordinate inBlackRect, RectangleCoordinate spanRect)
+        // {
+        //     uint newX1 = Math.Min(inBlackRect.Vertex1.x, spanRect.Vertex1.x);
+        //     uint newY1 = Math.Min(inBlackRect.Vertex1.y, spanRect.Vertex1.y);
+        //     uint newX2 = Math.Max(inBlackRect.Vertex2.x, spanRect.Vertex2.x);
+        //     uint newY2 = Math.Max(inBlackRect.Vertex2.y, spanRect.Vertex2.y);
 
-            return new RectangleCoordinate((newX1, newY1), (newX2, newY2));
-        }
-        static bool FindBlackTiles(RectangleCoordinate inBlackRect, IReadOnlyCollection<RectangleCoordinate> processedRectangleCoordinatesInBlack, RectangleCoordinate rectangleCoordinate)
+        //     return new RectangleCoordinate((newX1, newY1), (newX2, newY2));
+        // }
+        static bool FindBlackTiles(IReadOnlyCollection<RectangleCoordinate> processedRectangleCoordinatesInBlack, RectangleCoordinate rectangleCoordinate)
         {
             bool result = false;
 
-            if (!IsOverlapped(inBlackRect, rectangleCoordinate))
-            {
-                return result;
-            }
+            // var spanInBlack = new Span<RectangleCoordinate>(processedRectangleCoordinatesInBlack.ToArray());
+            // foreach(var processedRectangleCoordinateInBlack in spanInBlack)
+            // {
+            //     if (IsOverlapped(processedRectangleCoordinateInBlack, rectangleCoordinate))
+            //     {
+            //         result = true;
+            //         break;
+            //     }
+            // }
 
             foreach(var processedRectangleCoordinateInBlack in processedRectangleCoordinatesInBlack)
             {
