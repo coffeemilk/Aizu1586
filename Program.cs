@@ -24,7 +24,7 @@ namespace MyApp // Note: actual namespace depends on the project name.
             //太郎君は、 i 日目の朝に、左から axi 番目で上から ayi 番目のタイルを左上、 左から bxi 番目で上から byi 番目のタイルを右下にした長方形領域に存在しているタイルがすべて白いかどうかを確認する。 
             //もしすべてのタイルが白かった場合、それらのタイルをすべて黒く塗りつぶす。それ以外のときは何もしない。
             sw.Start();
-            var numberOfblackedTiles = PaintItBlackIfNecessary(initialTiles);
+            var numberOfblackedTiles = PaintItBlackIfNecessary(initialTiles.ToArray());
             sw.Stop();
             var elapse1 = sw.ElapsedMilliseconds;
             //N 日間のそれぞれの日において、その日の作業が終了した時点で黒く塗りつぶされたタイルが何枚あるかを出力せよ。
@@ -52,15 +52,16 @@ namespace MyApp // Note: actual namespace depends on the project name.
             //Console.ReadKey();
         }
 
-        static  IReadOnlyCollection<ulong> PaintItBlackIfNecessary( IReadOnlyCollection<RectangleCoordinate> rectangleCoordinates)
+        static  IReadOnlyCollection<ulong> PaintItBlackIfNecessary(RectangleCoordinate[] rectangleCoordinates)
         {
-            var days = rectangleCoordinates.Count;
-            var blackTiles = new List<ulong>(days);
-            var processedRectangleCoordinates = new List<RectangleCoordinate>(days);
+            var days = rectangleCoordinates.Length;
+            var blackTiles = new ulong[days];
+            var processedRectangleCoordinates = new RectangleCoordinate[days];
             ulong inTotalBlackTiles = 0;
 
 //            var spanRects = new Span<RectangleCoordinate>(rectangleCoordinates.ToArray());
-            foreach(var rectangleCoordinate in rectangleCoordinates)
+            for(int day = 0; day < days; day++)
+            //foreach(var rectangleCoordinate in rectangleCoordinates)
             {
                 // if (!FindBlackTiles(processedRectangleCoordinates, spanRect))
                 // {
@@ -69,14 +70,17 @@ namespace MyApp // Note: actual namespace depends on the project name.
                 // }
 
                 bool  overlapped = false;
-                foreach(var processedRectangleCoordinate in processedRectangleCoordinates)
+                int index = 0;
+                for (; index < processedRectangleCoordinates.Length; index++)
+                //foreach(var processedRectangleCoordinate in processedRectangleCoordinates)
                 {
+                    if (processedRectangleCoordinates[index].ArraySize == 0) break;
 
-                    var leftTop = rectangleCoordinate.Vertex1;
-                    var rightBottom = rectangleCoordinate.Vertex2;
+                    var leftTop = rectangleCoordinates[day].Vertex1;
+                    var rightBottom = rectangleCoordinates[day].Vertex2;
 
-                    var processedLeftTop = processedRectangleCoordinate.Vertex1;
-                    var processedRightBottom = processedRectangleCoordinate.Vertex2;
+                    var processedLeftTop = processedRectangleCoordinates[index].Vertex1;
+                    var processedRightBottom = processedRectangleCoordinates[index].Vertex2;
 
                     bool IsLeftLessRight = (leftTop.x <= processedRightBottom.x);
                     bool IsRightGreaterLeft = (rightBottom.x >= processedLeftTop.x);
@@ -89,11 +93,11 @@ namespace MyApp // Note: actual namespace depends on the project name.
 
                 if (!overlapped)
                 {
-                    inTotalBlackTiles += PaintItBlack(rectangleCoordinate);
-                    processedRectangleCoordinates.Add(rectangleCoordinate);
+                    inTotalBlackTiles += rectangleCoordinates[day].ArraySize;
+                    processedRectangleCoordinates[index] = rectangleCoordinates[day];
                 }
 
-                blackTiles.Add(inTotalBlackTiles);
+                blackTiles[day] = inTotalBlackTiles;
             }
 
             return blackTiles;
@@ -244,17 +248,15 @@ namespace MyApp // Note: actual namespace depends on the project name.
         {
             Vertex1 = vertex1;
             Vertex2 = vertex2;
+            var width = vertex2.x - vertex1.x + 1;
+            var height = vertex2.y - vertex1.y + 1;
+            ArraySize = width * height;
         }
 
-        internal RectangleCoordinate(RectangleCoordinate clone)
-        {
-            Vertex1 = clone.Vertex1;
-            Vertex2 = clone.Vertex2;
-        }
+        internal (uint x, uint y) Vertex1 { get; }
+        internal (uint x, uint y) Vertex2 { get; }
 
-        internal (uint x, uint y) Vertex1 {get; }
-        internal (uint x, uint y) Vertex2 {get; }
-
+        internal ulong ArraySize { get; }
     }
 
 
