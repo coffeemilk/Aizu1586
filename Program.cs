@@ -13,6 +13,13 @@ namespace MyApp // Note: actual namespace depends on the project name.
         {
             var sw = new System.Diagnostics.Stopwatch();
             sw.Start();
+            Run();
+            sw.Stop();
+            Console.WriteLine($"Elapsed time = {sw.ElapsedMilliseconds}");
+        }
+
+        static void Run()
+        {
             //白い正方形のタイルが横方向に W 個、縦方向に H 個、合計 W × H 個敷き詰められている。
             var initialTiles = InitializeTiles();
             //太郎君は、 i 日目の朝に、左から axi 番目で上から ayi 番目のタイルを左上、 左から bxi 番目で上から byi 番目のタイルを右下にした長方形領域に存在しているタイルがすべて白いかどうかを確認する。 
@@ -20,8 +27,6 @@ namespace MyApp // Note: actual namespace depends on the project name.
             var numberOfblackedTiles = PaintItBlackIfNecessary(initialTiles);
             //N 日間のそれぞれの日において、その日の作業が終了した時点で黒く塗りつぶされたタイルが何枚あるかを出力せよ。
             ShowOutput(numberOfblackedTiles);
-            sw.Stop();
-            Console.WriteLine($"Elapsed time = {sw.ElapsedMilliseconds}");
         }
 
         static void ShowOutput(IEnumerable<ulong> numberOfBlackedTiles)
