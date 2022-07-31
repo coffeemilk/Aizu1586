@@ -12,30 +12,43 @@ namespace MyApp // Note: actual namespace depends on the project name.
         static void Main(string[] args)
         {
             var sw = new System.Diagnostics.Stopwatch();
-            sw.Start();
-            Run();
-            sw.Stop();
-            Console.WriteLine($"Elapsed time = {sw.ElapsedMilliseconds}");
+            var time = Run(sw);
+            Console.WriteLine($"Elapsed time in Logic = {time.elapse1}");
+            Console.WriteLine($"Elapsed time in Output = {time.elapse2}");
         }
 
-        static void Run()
+        static (long elapse1, long elapse2) Run(System.Diagnostics.Stopwatch sw)
         {
             //白い正方形のタイルが横方向に W 個、縦方向に H 個、合計 W × H 個敷き詰められている。
             var initialTiles = InitializeTiles();
             //太郎君は、 i 日目の朝に、左から axi 番目で上から ayi 番目のタイルを左上、 左から bxi 番目で上から byi 番目のタイルを右下にした長方形領域に存在しているタイルがすべて白いかどうかを確認する。 
             //もしすべてのタイルが白かった場合、それらのタイルをすべて黒く塗りつぶす。それ以外のときは何もしない。
+            sw.Start();
             var numberOfblackedTiles = PaintItBlackIfNecessary(initialTiles);
+            sw.Stop();
+            var elapse1 = sw.ElapsedMilliseconds;
             //N 日間のそれぞれの日において、その日の作業が終了した時点で黒く塗りつぶされたタイルが何枚あるかを出力せよ。
-            ShowOutput(numberOfblackedTiles);
+            var elapse2 = ShowOutput(numberOfblackedTiles, sw);
+
+            return (elapse1, elapse2);
         }
 
-        static void ShowOutput(IEnumerable<ulong> numberOfBlackedTiles)
+        static long ShowOutput(IEnumerable<ulong> numberOfBlackedTiles, System.Diagnostics.Stopwatch sw)
         {
+            sw.Reset();
+            sw.Start();
+            var output = new System.Text.StringBuilder();
+
             foreach(var numberOfBlackedTile in numberOfBlackedTiles)
             {
-                Console.WriteLine(numberOfBlackedTile);
+                output.Append(numberOfBlackedTile);
+                output.AppendLine();
             }
+            output.Remove(output.Length-1,1);
+            Console.WriteLine(output);
+            sw.Stop();
 
+            return sw.ElapsedMilliseconds;
             //Console.ReadKey();
         }
 
